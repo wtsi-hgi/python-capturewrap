@@ -1,3 +1,7 @@
+import json
+from typing import Any
+
+
 class CaptureResult:
     """
     TODO
@@ -7,3 +11,10 @@ class CaptureResult:
         self.stdout = stdout
         self.stderr = stderr
         self.exception = exception
+
+    def __str__(self):
+        return json.dumps({
+            "return_value": self.return_value,
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+            "expcetion": self.exception})
