@@ -21,7 +21,7 @@ class CaptureResult:
 
     def __str__(self):
         return json.dumps({
-            RETURN_VALUE_TEXT: self.return_value,
+            RETURN_VALUE_TEXT: str(self.return_value),
             STDOUT_TEXT: self.stdout,
             STDERR_TEXT: self.stderr,
             EXCEPTION_TEXT: format_exception_only(type(self.exception), self.exception)})
