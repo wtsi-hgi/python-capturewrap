@@ -2,9 +2,15 @@ import json
 from typing import Any
 
 
+RETURN_VALUE_TEXT = "return_value"
+STDOUT_TEXT = "stdout"
+STDERR_TEXT = "stderr"
+EXCEPTION_TEXT = "exception"
+
+
 class CaptureResult:
     """
-    TODO
+    Captured result.
     """
     def __init__(self, return_value: Any=None, stdout: str=None, stderr: str=None, exception: BaseException=None):
         self.return_value = return_value
@@ -14,7 +20,7 @@ class CaptureResult:
 
     def __str__(self):
         return json.dumps({
-            "return_value": self.return_value,
-            "stdout": self.stdout,
-            "stderr": self.stderr,
-            "expcetion": self.exception})
+            RETURN_VALUE_TEXT: self.return_value,
+            STDOUT_TEXT: self.stdout,
+            STDERR_TEXT: self.stderr,
+            EXCEPTION_TEXT: self.exception})

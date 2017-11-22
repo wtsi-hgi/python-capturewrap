@@ -2,15 +2,22 @@ import sys
 import unittest
 
 import itertools
+from typing import NamedTuple, Callable, Optional, Any
 
 from capture import CaptureBuilder
+from capture.models import RETURN_VALUE_TEXT, STDOUT_TEXT, STDERR_TEXT, EXCEPTION_TEXT
 
 _SENTINEL = "not-set"
 
+
+class _CaptureConfiguration(NamedTuple):
+    build_flag: Optional[str]
+    test_method: Callable
+    captured_attribute: str
+    expected_value: Any
+
+
 class _ComparableException(Exception):
-    """
-    TODO
-    """
     def __eq__(self, other):
         if not isinstance(other, _ComparableException):
             return False
@@ -19,84 +26,86 @@ class _ComparableException(Exception):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-INPUT_ARGS = ("hello ", )
-INPUT_KWARGS = {"kwarg": "world"}
-RETURN_PREFIX = "return: "
-STDOUT_PREFIX = "stdout: "
-STDERR_PREFIX = "stderr: "
-EXCEPTION_PREFIX = "exception: "
-EXCEPTION_TYPE = _ComparableException
 
 def _combine_values(*args):
     return " ".join(args)
 
+
+INPUT_ARGS = ("hello ", )
+INPUT_KWARGS = {"kwarg": "world"}
+RETURN_VALUE_IDENTIFIER = f"{RETURN_VALUE_TEXT}: "
+STDOUT_VALUE_IDENTIFIER = f"{STDOUT_TEXT}: "
+STDERR_VALUE_IDENTIFIER = f"{STDERR_TEXT}: "
+EXCEPTION_VALUE_IDENTIFIER = f"{EXCEPTION_TEXT}: "
+EXCEPTION_TYPE = _ComparableException
+
 _COMMON_OUTPUT = _combine_values("".join(INPUT_ARGS), "".join(INPUT_KWARGS.values()))
-RETURN_OUTPUT = _combine_values(RETURN_PREFIX, _COMMON_OUTPUT)
-STDOUT_OUTPUT = _combine_values(STDOUT_PREFIX, _COMMON_OUTPUT)
-STDERR_OUTPUT = _combine_values(STDERR_PREFIX, _COMMON_OUTPUT)
-EXCEPTION_OUTPUT = _combine_values(EXCEPTION_PREFIX, _COMMON_OUTPUT)
+RETURN_OUTPUT = _combine_values(RETURN_VALUE_IDENTIFIER, _COMMON_OUTPUT)
+STDOUT_OUTPUT = _combine_values(STDOUT_VALUE_IDENTIFIER, _COMMON_OUTPUT)
+STDERR_OUTPUT = _combine_values(STDERR_VALUE_IDENTIFIER, _COMMON_OUTPUT)
+EXCEPTION_OUTPUT = _combine_values(EXCEPTION_VALUE_IDENTIFIER, _COMMON_OUTPUT)
+
 
 def _returner(arg, kwarg=_SENTINEL):
-    return _combine_values(RETURN_PREFIX, arg, kwarg)
+    return _combine_values(RETURN_VALUE_IDENTIFIER, arg, kwarg)
 
 def _stdouter(arg, kwarg=_SENTINEL):
-    sys.stdout.write(_combine_values(STDOUT_PREFIX, arg, kwarg))
+    sys.stdout.write(_combine_values(STDOUT_VALUE_IDENTIFIER, arg, kwarg))
     sys.stdout.flush()
 
 def _stderrer(arg, kwarg=_SENTINEL):
-    sys.stderr.write(_combine_values(STDERR_PREFIX, arg, kwarg))
+    sys.stderr.write(_combine_values(STDERR_VALUE_IDENTIFIER, arg, kwarg))
     sys.stderr.flush()
 
 def _exceptioner(arg, kwarg=_SENTINEL):
-    raise EXCEPTION_TYPE(_combine_values(EXCEPTION_PREFIX, arg, kwarg))
+    raise EXCEPTION_TYPE(_combine_values(EXCEPTION_VALUE_IDENTIFIER, arg, kwarg))
 
 
 class TestCaptureBuilder(unittest.TestCase):
     """
-    TODO
+    Tests for `CaptureBuilder`.
     """
-    # TODO: Change data structure
-    _mappings = {
-        "return_value": (None, _returner, ("return_value", RETURN_OUTPUT)),
-        "stdout": ("capture_stdout", _stdouter, ("stdout", STDOUT_OUTPUT)),
-        "stderr": ("capture_stderr", _stderrer, ("stderr", STDERR_OUTPUT)),
-        "exception": ("capture_exception", _exceptioner, ("exception", EXCEPTION_TYPE(EXCEPTION_OUTPUT)))
+    _capture_configurations = {
+        RETURN_VALUE_TEXT: _CaptureConfiguration(None, _returner, "return_value", RETURN_OUTPUT),
+        STDOUT_TEXT: _CaptureConfiguration("capture_stdout", _stdouter, "stdout", STDOUT_OUTPUT),
+        STDERR_TEXT: _CaptureConfiguration("capture_stderr", _stderrer, "stderr", STDERR_OUTPUT),
+        EXCEPTION_TEXT: _CaptureConfiguration(
+            "capture_exception", _exceptioner, "exception", EXCEPTION_TYPE(EXCEPTION_OUTPUT))
     }
 
     def test_capture(self):
-        permutations = []
-        for i in range(len(TestCaptureBuilder._mappings)):
-            permutations.extend(itertools.combinations(TestCaptureBuilder._mappings.keys(), r=i + 1))
+        combinations = []
+        for i in range(len(TestCaptureBuilder._capture_configurations)):
+            combinations.extend(itertools.combinations(TestCaptureBuilder._capture_configurations.keys(), r=i + 1))
 
-        for permutation in permutations:
-            with self.subTest(permutation=permutation):
-                captures = [TestCaptureBuilder._mappings[configuration] for configuration in permutation]
-                build_parameters = [capture[0] for capture in captures if capture[0] is not None]
-                builder_kwargs = {build_parameter: True for build_parameter in build_parameters}
+        for combination in combinations:
+            with self.subTest(combination=combination):
+                captures = [TestCaptureBuilder._capture_configurations[configuration] for configuration in combination]
+                build_combinations = [capture.build_flag for capture in captures if capture.build_flag is not None]
+                builder_kwargs = {build_parameter: True for build_parameter in build_combinations}
 
                 def callable(*args, **kwargs):
                     returns = []
                     # Execute callables, saving exception until last (else proceeding ones won't get called)
-                    for sub_callable in sorted([capture[1] for capture in captures],
+                    for test_method in sorted([capture.test_method for capture in captures],
                                                key=lambda x: int(x == _exceptioner)):
-                        result = sub_callable(*args, **kwargs)
+                        result = test_method(*args, **kwargs)
                         returns.append(result)
                     collapsed = ([x for x in returns if x is not None])
-                    assert len(collapsed) <= 1, \
-                        "More than one call returned a non-`None` value (has `_returner` been called multiple times?)"
+                    self.assertLessEqual(len(collapsed), 1, "More than one call returned a non-`None` value (has "
+                                                            "`_returner` been called multiple times?)")
                     return None if len(collapsed) == 0 else collapsed[0]
 
                 capturing = CaptureBuilder(**builder_kwargs).build(callable)
                 captured_result = capturing(*INPUT_ARGS, **INPUT_KWARGS)
 
                 for capture in captures:
-                    exception_and_return = TestCaptureBuilder._mappings["exception"] in captures \
-                                           and TestCaptureBuilder._mappings["return_value"] in captures
-                    attribute = capture[2][0]
-                    expected_value = capture[2][1]
-                    if exception_and_return and attribute == "return_value":
+                    exception_and_return = TestCaptureBuilder._capture_configurations[EXCEPTION_TEXT] in captures \
+                                           and TestCaptureBuilder._capture_configurations[RETURN_VALUE_TEXT] in captures
+                    expected_value = capture.expected_value
+                    if exception_and_return and capture.captured_attribute == RETURN_VALUE_TEXT:
                         expected_value = None
-                    self.assertEqual(expected_value, getattr(captured_result, attribute), msg=capture)
+                    self.assertEqual(expected_value, getattr(captured_result, capture.captured_attribute), msg=capture)
 
 
 if __name__ == "__main__":
