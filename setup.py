@@ -10,7 +10,7 @@ except ImportError:
 
 setup(
     name="capturewrap",
-    version="1.0.0",
+    version="1.0.1",
     packages=find_packages(exclude=["tests"]),
     url="https://github.com/wtsi-hgi/python-capturewrap",
     license="MIT",
