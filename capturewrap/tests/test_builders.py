@@ -73,7 +73,7 @@ class TestWrapCaptureBuilder(unittest.TestCase):
             "capture_exception", _exceptioner, "exception", EXCEPTION_TYPE(EXCEPTION_OUTPUT))
     }
 
-    def test_capture(self):
+    def test_capture_combinations(self):
         combinations = []
         for i in range(len(TestWrapCaptureBuilder._capture_configurations)):
             combinations.extend(itertools.combinations(TestWrapCaptureBuilder._capture_configurations.keys(), r=i + 1))
@@ -106,6 +106,12 @@ class TestWrapCaptureBuilder(unittest.TestCase):
                     if exception_and_return and capture.captured_attribute == RETURN_VALUE_TEXT:
                         expected_value = None
                     self.assertEqual(expected_value, getattr(captured_result, capture.captured_attribute), msg=capture)
+
+    def test_exception_capture_when_no_exception(self):
+        builder = CaptureWrapBuilder(capture_exception=True)
+        wrapped = builder.build(_returner)
+        result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
+        self.assertEqual(RETURN_OUTPUT, result.return_value)
 
 
 if __name__ == "__main__":
