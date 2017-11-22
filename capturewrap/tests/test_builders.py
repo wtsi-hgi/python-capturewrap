@@ -4,8 +4,8 @@ import unittest
 import itertools
 from typing import NamedTuple, Callable, Optional, Any
 
-from capture import CaptureBuilder
-from capture.models import RETURN_VALUE_TEXT, STDOUT_TEXT, STDERR_TEXT, EXCEPTION_TEXT
+from capturewrap import CaptureWrapBuilder
+from capturewrap.models import RETURN_VALUE_TEXT, STDOUT_TEXT, STDERR_TEXT, EXCEPTION_TEXT
 
 _SENTINEL = "not-set"
 
@@ -61,9 +61,9 @@ def _exceptioner(arg, kwarg=_SENTINEL):
     raise EXCEPTION_TYPE(_combine_values(EXCEPTION_VALUE_IDENTIFIER, arg, kwarg))
 
 
-class TestCaptureBuilder(unittest.TestCase):
+class TestWrapCaptureBuilder(unittest.TestCase):
     """
-    Tests for `CaptureBuilder`.
+    Tests for `WrapCaptureBuilder`.
     """
     _capture_configurations = {
         RETURN_VALUE_TEXT: _CaptureConfiguration(None, _returner, "return_value", RETURN_OUTPUT),
@@ -75,12 +75,12 @@ class TestCaptureBuilder(unittest.TestCase):
 
     def test_capture(self):
         combinations = []
-        for i in range(len(TestCaptureBuilder._capture_configurations)):
-            combinations.extend(itertools.combinations(TestCaptureBuilder._capture_configurations.keys(), r=i + 1))
+        for i in range(len(TestWrapCaptureBuilder._capture_configurations)):
+            combinations.extend(itertools.combinations(TestWrapCaptureBuilder._capture_configurations.keys(), r=i + 1))
 
         for combination in combinations:
             with self.subTest(combination=combination):
-                captures = [TestCaptureBuilder._capture_configurations[configuration] for configuration in combination]
+                captures = [TestWrapCaptureBuilder._capture_configurations[configuration] for configuration in combination]
                 build_combinations = [capture.build_flag for capture in captures if capture.build_flag is not None]
                 builder_kwargs = {build_parameter: True for build_parameter in build_combinations}
 
@@ -96,12 +96,12 @@ class TestCaptureBuilder(unittest.TestCase):
                                                             "`_returner` been called multiple times?)")
                     return None if len(collapsed) == 0 else collapsed[0]
 
-                capturing = CaptureBuilder(**builder_kwargs).build(callable)
+                capturing = CaptureWrapBuilder(**builder_kwargs).build(callable)
                 captured_result = capturing(*INPUT_ARGS, **INPUT_KWARGS)
 
                 for capture in captures:
-                    exception_and_return = TestCaptureBuilder._capture_configurations[EXCEPTION_TEXT] in captures \
-                                           and TestCaptureBuilder._capture_configurations[RETURN_VALUE_TEXT] in captures
+                    exception_and_return = TestWrapCaptureBuilder._capture_configurations[EXCEPTION_TEXT] in captures \
+                                           and TestWrapCaptureBuilder._capture_configurations[RETURN_VALUE_TEXT] in captures
                     expected_value = capture.expected_value
                     if exception_and_return and capture.captured_attribute == RETURN_VALUE_TEXT:
                         expected_value = None

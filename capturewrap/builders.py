@@ -2,10 +2,10 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Callable
 
-from capture.models import CaptureResult
+from capturewrap.models import CaptureResult
 
 
-class CaptureBuilder:
+class CaptureWrapBuilder:
     """
     Builder of methods that capture information when a callable is called.
     """
@@ -92,10 +92,10 @@ class CaptureBuilder:
 
         if self.capture_exception:
             # Need to capture exceptions first else other (non-return) captured information will be lost
-            capturing_callable = CaptureBuilder._wrap(capturing_callable, CaptureBuilder._capture_exception)
+            capturing_callable = CaptureWrapBuilder._wrap(capturing_callable, CaptureWrapBuilder._capture_exception)
         if self.capture_stdout:
-            capturing_callable = CaptureBuilder._wrap(capturing_callable, CaptureBuilder._capture_stdout)
+            capturing_callable = CaptureWrapBuilder._wrap(capturing_callable, CaptureWrapBuilder._capture_stdout)
         if self.capture_stderr:
-            capturing_callable = CaptureBuilder._wrap(capturing_callable, CaptureBuilder._capture_stderr)
+            capturing_callable = CaptureWrapBuilder._wrap(capturing_callable, CaptureWrapBuilder._capture_stderr)
 
         return capturing_callable
