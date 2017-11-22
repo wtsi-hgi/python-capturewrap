@@ -15,5 +15,6 @@ setup(
     url="https://github.com/wtsi-hgi/python-capturewrap",
     license="MIT",
     description="Wraps callables to capture stdout, stderr, exceptions and the return",
-    long_description=read_markdown("README.md")
+    long_description=read_markdown("README.md"),
+    zip_safe=True
 )
