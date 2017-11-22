@@ -1,4 +1,5 @@
 import json
+from traceback import format_exception_only
 from typing import Any
 
 
@@ -23,4 +24,4 @@ class CaptureResult:
             RETURN_VALUE_TEXT: self.return_value,
             STDOUT_TEXT: self.stdout,
             STDERR_TEXT: self.stderr,
-            EXCEPTION_TEXT: self.exception})
+            EXCEPTION_TEXT: format_exception_only(type(self.exception), self.exception)})
