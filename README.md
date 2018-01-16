@@ -20,10 +20,11 @@ Other [alternatives](#alternatives) exist for capturing stdout and stderr but no
 
 
 ## How?
+### General
 ```python
 from capturewrap import CaptureWrapBuilder
 
-builder = CaptureWrapBuilder(capture_stdout=True, capture_stderr=True, capture_exception=True)
+builder = CaptureWrapBuilder(capture_stdout=True, capture_stderr=True, capture_exceptions=True)
 wrapped = builder.build(my_method)
 
 result = wrapped(*args, **kwargs)
@@ -33,6 +34,20 @@ print(f"return_value: {result.return_value}")
 print(f"exception: {result.exception}")
 ```
 Note: if an exception is captured, `return_value` will be `None`.
+
+### Custom Exception Capture
+It may be desirable to capture only some exceptions and leave others to get raised as normal. To do this with 
+`CaptureWrapBuilder`, set `capture_exceptions` as a function that takes the exception as the first argument and returns 
+back a boolean value to indicate if the exception should be captured. e.g.
+```python
+from capturewrap import CaptureWrapBuilder
+
+builder = CaptureWrapBuilder(capture_exceptions=lambda e: isinstance(e, SystemExit) and e.code == 0)
+wrapped = builder.build(exit)
+
+print(wrapped(0))   # {"exception": ["SystemExit: 0\n"]}
+print(wrapped(1))   # Raises exception
+```
 
 
 ## Requirements
