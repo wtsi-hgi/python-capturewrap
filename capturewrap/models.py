@@ -20,8 +20,13 @@ class CaptureResult:
         self.exception = exception
 
     def __str__(self):
-        return json.dumps({
-            RETURN_VALUE_TEXT: str(self.return_value),
-            STDOUT_TEXT: self.stdout,
-            STDERR_TEXT: self.stderr,
-            EXCEPTION_TEXT: format_exception_only(type(self.exception), self.exception)})
+        store = {}
+        if self.return_value is not None:
+            store[RETURN_VALUE_TEXT] = str(self.return_value)
+        if self.stdout is not None:
+            store[STDOUT_TEXT] = self.stdout
+        if self.stderr is not None:
+            store[STDERR_TEXT] = self.stderr
+        if self.exception is not None:
+            store[EXCEPTION_TEXT] = format_exception_only(type(self.exception), self.exception)
+        return json.dumps(store)
