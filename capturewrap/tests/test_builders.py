@@ -26,6 +26,8 @@ class _ComparableException(Exception):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        return hash(id(self))
 
 def _combine_values(*args):
     return " ".join(args)
@@ -70,7 +72,7 @@ class TestWrapCaptureBuilder(unittest.TestCase):
         STDOUT_TEXT: _CaptureConfiguration("capture_stdout", _stdouter, "stdout", STDOUT_OUTPUT),
         STDERR_TEXT: _CaptureConfiguration("capture_stderr", _stderrer, "stderr", STDERR_OUTPUT),
         EXCEPTION_TEXT: _CaptureConfiguration(
-            "capture_exception", _exceptioner, "exception", EXCEPTION_TYPE(EXCEPTION_OUTPUT))
+            "capture_exceptions", _exceptioner, "exception", EXCEPTION_TYPE(EXCEPTION_OUTPUT))
     }
 
     def test_capture_combinations(self):
@@ -108,10 +110,30 @@ class TestWrapCaptureBuilder(unittest.TestCase):
                     self.assertEqual(expected_value, getattr(captured_result, capture.captured_attribute), msg=capture)
 
     def test_exception_capture_when_no_exception(self):
-        builder = CaptureWrapBuilder(capture_exception=True)
+        builder = CaptureWrapBuilder(capture_exceptions=True)
         wrapped = builder.build(_returner)
         result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
         self.assertEqual(RETURN_OUTPUT, result.return_value)
+
+    def test_exception_capture_when_capturing_other_exception(self):
+        builder = CaptureWrapBuilder(capture_exceptions=lambda e: False)
+        wrapped = builder.build(_exceptioner)
+        self.assertRaises(_ComparableException, wrapped, *INPUT_ARGS, **INPUT_KWARGS)
+
+    def test_exception_capture_when_capturing_raised_exception(self):
+        builder = CaptureWrapBuilder(capture_exceptions=lambda e: isinstance(e, EXCEPTION_TYPE))
+        wrapped = builder.build(_exceptioner)
+        result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
+        self.assertIsInstance(result.exception, EXCEPTION_TYPE)
+
+    def test_legacy_exception_capture_flag(self):
+        builder = CaptureWrapBuilder(capture_exception=True)
+        wrapped = builder.build(_exceptioner)
+        result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
+        self.assertIsInstance(result.exception, EXCEPTION_TYPE)
+
+    def test_legacy_exception_capture_flag_with_new_flag(self):
+        self.assertRaises(ValueError, CaptureWrapBuilder, capture_exception=False, capture_exceptions=True)
 
 
 if __name__ == "__main__":
