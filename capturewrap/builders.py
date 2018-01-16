@@ -4,6 +4,8 @@ from typing import Callable, Optional, Union
 
 from capturewrap.models import CaptureResult
 
+_CAPTURE_EXCEPTION_SENTINEL = object()
+
 
 class CaptureWrapBuilder:
     """
@@ -99,7 +101,8 @@ class CaptureWrapBuilder:
             self._capture_exceptions = capture_exceptions
 
     def __init__(self, capture_stdout: bool=False, capture_stderr: bool=False,
-                 capture_exceptions: Union[bool, Callable[[BaseException], bool]]=False):
+                 capture_exceptions: Union[bool, Callable[[BaseException], bool]]=False,
+                 capture_exception: bool=_CAPTURE_EXCEPTION_SENTINEL):
         """
         Constructor.
         :param capture_stdout: whether to capture the content on stdout
@@ -108,6 +111,13 @@ class CaptureWrapBuilder:
         exception) or, more specifically, to capture an exception if a given callable dictates (else let it raise).
         Useful for capturing `SystemExit(code=0)`
         """
+        if capture_exception != _CAPTURE_EXCEPTION_SENTINEL:
+            # TODO: warning that `capture_exception` is deprecated
+            if capture_exceptions:
+                raise ValueError("Both `capture_exception` and `capture_exceptions` cannot be set together "
+                                 "(`capture_exception` is deprecated)")
+            capture_exceptions = capture_exception
+
         self.capture_stdout = capture_stdout
         self.capture_stderr = capture_stderr
         self._capture_exceptions = None

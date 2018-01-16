@@ -126,6 +126,15 @@ class TestWrapCaptureBuilder(unittest.TestCase):
         result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
         self.assertIsInstance(result.exception, EXCEPTION_TYPE)
 
+    def test_legacy_exception_capture_flag(self):
+        builder = CaptureWrapBuilder(capture_exception=True)
+        wrapped = builder.build(_exceptioner)
+        result = wrapped(*INPUT_ARGS, **INPUT_KWARGS)
+        self.assertIsInstance(result.exception, EXCEPTION_TYPE)
+
+    def test_legacy_exception_capture_flag_with_new_flag(self):
+        self.assertRaises(ValueError, CaptureWrapBuilder, capture_exception=False, capture_exceptions=True)
+
 
 if __name__ == "__main__":
     unittest.main()
